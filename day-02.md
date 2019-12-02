@@ -35,7 +35,7 @@ The first four integers, `1,9,10,3`, are at positions `0`, `1`, `2`, and `3`. To
 30,40,50
 ```
 
-Step forward `4` positions to reach the next opcode, `2`. This opcode works just like the previous, but it multiplies instead of adding. The inputs are at positions `3` and `11`; these positions contain `70` and `50` respectively. Multiplying these produces `3500`; this is stored at position 0`:
+Step forward `4` positions to reach the next opcode, `2`. This opcode works just like the previous, but it multiplies instead of adding. The inputs are at positions `3` and `11`; these positions contain `70` and `50` respectively. Multiplying these produces `3500`; this is stored at position `0`:
 
 ```text
 3500,9,10,70,
@@ -79,7 +79,7 @@ Find the input _noun_ and _verb_ that cause the program to produce the output `1
 
 Your puzzle answer was `4847`.
 
-** Both parts of this puzzle are complete! They provide two gold stars: \*\***
+**Both parts of this puzzle are complete! They provide two gold stars: \*\***
 
 At this point, you should [return to your Advent calendar](https://adventofcode.com/2019) and try another puzzle.
 
