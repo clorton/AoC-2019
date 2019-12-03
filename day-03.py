@@ -72,39 +72,35 @@ def main(filename):
     height = max_y - min_y + 1
 
     board = np.zeros((height, width), dtype=np.uint32)
+    visits = np.zeros_like(board)
+    crossings = set()
 
     x0 = min_x
     y0 = min_y
 
-    def trace_wire(line, fn):
+    def trace_wire(line, marker):
 
+        nonlocal visits, x0, y0, board, crossings
         x = 0
         y = 0
+        count = 0
         for entry in line:
             direction = entry[0]
             distance = int(entry[1:])
             for _ in range(distance):
                 x += compass[direction][0]
                 y += compass[direction][1]
-                fn(x, y)
+                count += 1
+                if (visits[y - y0, x - x0] & marker) == 0:
+                    board[y - y0, x - x0] += count
+                    visits[y - y0, x - x0] |= marker
+                    if visits[y - y0, x - x0] == 3:
+                        crossings.add(Point(x, y))
 
         return
 
-    def set_one(x, y):
-        nonlocal board, x0, y0
-        board[y-y0, x-x0] |= 1
-
-    trace_wire(line1, set_one)
-
-    crossings = set()
-
-    def set_two(x, y):
-        nonlocal board, x0, y0, crossings
-        board[y-y0, x-x0] |= 2
-        if board[y-y0, x-x0] == 3:
-            crossings.add(Point(x, y))
-
-    trace_wire(line2, set_two)
+    trace_wire(line1, 1)
+    trace_wire(line2, 2)
 
     minimum = 1 << 31
     for entry in crossings:
@@ -115,34 +111,6 @@ def main(filename):
     print(f"Minimum distance is {minimum}.")
 
     # part 2
-
-    board = np.zeros_like(board)
-    visits = np.zeros_like(board)
-
-    count = 0
-
-    def count_one(x, y):
-        nonlocal count, visits, x0, y0, board
-        count += 1
-        if (visits[y-y0, x-x0] & 1) == 0:
-            board[y-y0, x-x0] = count
-            visits[y-y0, x-x0] |= 1
-
-    trace_wire(line1, count_one)
-
-    crossings = set()
-    count = 0
-
-    def count_two(x, y):
-        nonlocal count, visits, x0, y0, board, crossings
-        count += 1
-        if (visits[y-y0, x-x0] & 2) == 0:
-            board[y-y0, x-x0] += count
-            visits[y-y0, x-x0] |= 2
-            if visits[y-y0, x-x0] == 3:
-                crossings.add(Point(x, y))
-
-    trace_wire(line2, count_two)
 
     minimum = 1 << 31
     for entry in crossings:
