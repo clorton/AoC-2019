@@ -1,59 +1,9 @@
 #!/usr/bin/env python3
 
 import numpy as np
+from collections import namedtuple
 
-
-# def add(ip, memory):
-#
-#     a = memory[memory[ip]]
-#     ip += 1
-#     b = memory[memory[ip]]
-#     ip += 1
-#     destination = memory[ip]
-#     ip += 1
-#     memory[destination] = a + b
-#
-#     return ip
-#
-#
-# def multiply(ip, memory):
-#
-#     a = memory[memory[ip]]
-#     ip += 1
-#     b = memory[memory[ip]]
-#     ip += 1
-#     destination = memory[ip]
-#     ip += 1
-#     memory[destination] = a * b
-#
-#     return ip
-#
-#
-# opcodes = {
-#     1: add,
-#     2: multiply
-# }
-#
-#
-# def process(opcode, ip, memory):
-#
-#     if opcode in opcodes:
-#         ip = opcodes[opcode](ip, memory)
-#     else:
-#         raise RuntimeError(f'Unknown opcode {opcode} at ip {ip}.')
-#
-#     return ip
-#
-#
-# def execute(memory):
-#
-#     ip = 0
-#     while memory[ip] != 99:
-#         opcode = memory[ip]
-#         ip += 1
-#         ip = process(opcode, ip, memory)
-#
-#     return memory
+Point = namedtuple('Point', ['x', 'y'])
 
 
 def main(filename):
@@ -90,71 +40,75 @@ def main(filename):
 
     # part 1
 
-    x = 0
-    y = 0
-    min_x1 = 1 << 31
-    min_y1 = 1 << 31
-    max_x1 = -min_x1
-    max_y1 = -min_y1
-    for entry in line1:
-        direction = entry[0]
-        distance = int(entry[1:])
-        x += compass[direction][0] * distance
-        y += compass[direction][1] * distance
-        min_x1 = min(min_x1, x)
-        min_y1 = min(min_y1, y)
-        max_x1 = max(max_x1, x)
-        max_y1 = max(max_y1, y)
+    def get_extents(line):
 
-    x = 0
-    y = 0
-    min_x2 = 1 << 31
-    min_y2 = 1 << 31
-    max_x2 = -min_x2
-    max_y2 = -min_y2
-    for entry in line2:
-        direction = entry[0]
-        distance = int(entry[1:])
-        x += compass[direction][0] * distance
-        y += compass[direction][1] * distance
-        min_x2 = min(min_x2, x)
-        min_y2 = min(min_y2, y)
-        max_x2 = max(max_x2, x)
-        max_y2 = max(max_y2, y)
+        x = 0
+        y = 0
+        min_x = 1 << 31
+        min_y = 1 << 31
+        max_x = -min_x
+        max_y = -min_y
+        for entry in line:
+            direction = entry[0]
+            distance = int(entry[1:])
+            x += compass[direction][0] * distance
+            y += compass[direction][1] * distance
+            min_x = min(min_x, x)
+            min_y = min(min_y, y)
+            max_x = max(max_x, x)
+            max_y = max(max_y, y)
+
+        return (min_x, min_y, max_x, max_y)
+
+    min_x1, min_y1, max_x1, max_y1 = get_extents(line1)
+    min_x2, min_y2, max_x2, max_y2 = get_extents(line2)
 
     min_x = min(min_x1, min_x2)
     min_y = min(min_y1, min_y2)
     max_x = max(max_x1, max_x2)
     max_y = max(max_y1, max_y2)
 
-    board = np.zeros((max_x-min_x+1, max_y-min_y+1), dtype=np.uint32)
+    width = max_x - min_x + 1
+    height = max_y - min_y + 1
 
-    x = 0
-    y = 0
-    for entry in line1:
-        direction = entry[0]
-        distance = int(entry[1:])
-        for _ in range(distance):
-            x += compass[direction][0]
-            y += compass[direction][1]
-            board[x-min_x, y-min_y] |= 1
+    board = np.zeros((height, width), dtype=np.uint32)
+
+    x0 = min_x
+    y0 = min_y
+
+    def trace_wire(line, fn):
+
+        x = 0
+        y = 0
+        for entry in line:
+            direction = entry[0]
+            distance = int(entry[1:])
+            for _ in range(distance):
+                x += compass[direction][0]
+                y += compass[direction][1]
+                fn(x, y)
+
+        return
+
+    def set_one(x, y):
+        nonlocal board, x0, y0
+        board[y-y0, x-x0] |= 1
+
+    trace_wire(line1, set_one)
 
     crossings = set()
-    x = 0
-    y = 0
-    for entry in line2:
-        direction = entry[0]
-        distance = int(entry[1:])
-        for _ in range(distance):
-            x += compass[direction][0]
-            y += compass[direction][1]
-            board[x-min_x, y-min_y] |= 2
-            if board[x-min_x, y-min_y] == 3:
-                crossings.add((x, y))
+
+    def set_two(x, y):
+        nonlocal board, x0, y0, crossings
+        board[y-y0, x-x0] |= 2
+        if board[y-y0, x-x0] == 3:
+            crossings.add(Point(x, y))
+
+    trace_wire(line2, set_two)
 
     minimum = 1 << 31
     for entry in crossings:
-        distance = abs(entry[0]) + abs(entry[1])
+        distance = abs(entry.x) + abs(entry.y)
         if distance > 0:
             minimum = min(minimum, distance)
 
@@ -165,40 +119,34 @@ def main(filename):
     board = np.zeros_like(board)
     visits = np.zeros_like(board)
 
-    x = 0
-    y = 0
     count = 0
-    for entry in line1:
-        direction = entry[0]
-        distance = int(entry[1:])
-        for _ in range(distance):
-            x += compass[direction][0]
-            y += compass[direction][1]
-            count += 1
-            if (visits[x-min_x, y-min_y] & 1) == 0:
-                board[x-min_x, y-min_y] = count
-                visits[x-min_x, y-min_y] |= 1
+
+    def count_one(x, y):
+        nonlocal count, visits, x0, y0, board
+        count += 1
+        if (visits[y-y0, x-x0] & 1) == 0:
+            board[y-y0, x-x0] = count
+            visits[y-y0, x-x0] |= 1
+
+    trace_wire(line1, count_one)
 
     crossings = set()
-    x = 0
-    y = 0
     count = 0
-    for entry in line2:
-        direction = entry[0]
-        distance = int(entry[1:])
-        for _ in range(distance):
-            x += compass[direction][0]
-            y += compass[direction][1]
-            count += 1
-            if (visits[x-min_x, y-min_y] & 2) == 0:
-                board[x-min_x, y-min_y] += count
-                visits[x - min_x, y - min_y] |= 2
-                if visits[x-min_x, y-min_y] == 3:
-                    crossings.add((x, y))
+
+    def count_two(x, y):
+        nonlocal count, visits, x0, y0, board, crossings
+        count += 1
+        if (visits[y-y0, x-x0] & 2) == 0:
+            board[y-y0, x-x0] += count
+            visits[y-y0, x-x0] |= 2
+            if visits[y-y0, x-x0] == 3:
+                crossings.add(Point(x, y))
+
+    trace_wire(line2, count_two)
 
     minimum = 1 << 31
     for entry in crossings:
-        steps = board[entry[0]-min_x, entry[1]-min_y]
+        steps = board[entry.y-y0, entry.x-x0]
         if steps > 0:
             minimum = min(minimum, steps)
 
