@@ -28,9 +28,12 @@ class Computer(object):
         self.inputs = list(inputs)
         self.ip = 0
         self.index = 0
-        self.outputs = []
+        self.output = None
 
         return
+
+    def reset(self):
+        self.ip = 0
 
     @classmethod
     def mode(cls, modes, index):
@@ -39,7 +42,7 @@ class Computer(object):
         # modes(1002, 3) => 0
         return (modes // (10**(index+1))) % 10
 
-    def read(self, mode, arg):
+    def load(self, mode, arg):
 
         if mode == POSITION:
             return self.memory[arg]
@@ -57,8 +60,8 @@ class Computer(object):
     def add(self):
 
         modes = self.memory[self.ip] - (self.memory[self.ip] % 10)
-        first = self.read(Computer.mode(modes, 1), self.memory[self.ip+1])
-        second = self.read(Computer.mode(modes, 2), self.memory[self.ip+2])
+        first = self.load(Computer.mode(modes, 1), self.memory[self.ip + 1])
+        second = self.load(Computer.mode(modes, 2), self.memory[self.ip + 2])
         assert Computer.mode(modes, 3) == POSITION, 'Cannot store with immediate mode.'
         self.store(first + second, self.memory[self.ip+3])
 
@@ -67,8 +70,8 @@ class Computer(object):
     def multiply(self):
 
         modes = self.memory[self.ip] - (self.memory[self.ip] % 10)
-        first = self.read(Computer.mode(modes, 1), self.memory[self.ip + 1])
-        second = self.read(Computer.mode(modes, 2), self.memory[self.ip + 2])
+        first = self.load(Computer.mode(modes, 1), self.memory[self.ip + 1])
+        second = self.load(Computer.mode(modes, 2), self.memory[self.ip + 2])
         assert Computer.mode(modes, 3) == POSITION, 'Cannot store with immediate mode.'
         self.store(first * second, self.memory[self.ip + 3])
 
@@ -87,17 +90,17 @@ class Computer(object):
     def output(self):
 
         modes = self.memory[self.ip] - (self.memory[self.ip] % 10)
-        value = self.read(Computer.mode(modes, 1), self.memory[self.ip + 1])
-        self.outputs.append(value)
-        # print(f"{value}")
+        value = self.load(Computer.mode(modes, 1), self.memory[self.ip + 1])
+        self.output = value
+        # print(f"value")
 
         return False
 
     def jump_if_true(self):
 
         modes = self.memory[self.ip] - (self.memory[self.ip] % 10)
-        first = self.read(Computer.mode(modes, 1), self.memory[self.ip + 1])
-        second = self.read(Computer.mode(modes, 2), self.memory[self.ip + 2])
+        first = self.load(Computer.mode(modes, 1), self.memory[self.ip + 1])
+        second = self.load(Computer.mode(modes, 2), self.memory[self.ip + 2])
         if first != 0:
             self.ip = second
             return True
@@ -107,8 +110,8 @@ class Computer(object):
     def jump_if_false(self):
 
         modes = self.memory[self.ip] - (self.memory[self.ip] % 10)
-        first = self.read(Computer.mode(modes, 1), self.memory[self.ip + 1])
-        second = self.read(Computer.mode(modes, 2), self.memory[self.ip + 2])
+        first = self.load(Computer.mode(modes, 1), self.memory[self.ip + 1])
+        second = self.load(Computer.mode(modes, 2), self.memory[self.ip + 2])
         if first == 0:
             self.ip = second
             return True
@@ -118,8 +121,8 @@ class Computer(object):
     def less(self):
 
         modes = self.memory[self.ip] - (self.memory[self.ip] % 10)
-        first = self.read(Computer.mode(modes, 1), self.memory[self.ip + 1])
-        second = self.read(Computer.mode(modes, 2), self.memory[self.ip + 2])
+        first = self.load(Computer.mode(modes, 1), self.memory[self.ip + 1])
+        second = self.load(Computer.mode(modes, 2), self.memory[self.ip + 2])
         assert Computer.mode(modes, 3) == POSITION, 'Cannot store with immediate mode.'
         self.store(1 if first < second else 0, self.memory[self.ip + 3])
 
@@ -128,8 +131,8 @@ class Computer(object):
     def equals(self):
 
         modes = self.memory[self.ip] - (self.memory[self.ip] % 10)
-        first = self.read(Computer.mode(modes, 1), self.memory[self.ip + 1])
-        second = self.read(Computer.mode(modes, 2), self.memory[self.ip + 2])
+        first = self.load(Computer.mode(modes, 1), self.memory[self.ip + 1])
+        second = self.load(Computer.mode(modes, 2), self.memory[self.ip + 2])
         assert Computer.mode(modes, 3) == POSITION, 'Cannot store with immediate mode.'
         self.store(1 if first == second else 0, self.memory[self.ip + 3])
 
@@ -146,39 +149,51 @@ class Computer(object):
         EQUALS: Microcode(equals, 4)
     }
 
-    def run(self):
+    def run(self, inputs=None):
 
-        self.ip = 0
+        if inputs is not None:
+            self.inputs.extend(inputs)
+        self.output = None
         while self.memory[self.ip] != HALT:
             opcode = self.memory[self.ip] % 10
             if not Computer.instructions[opcode].function(self):
                 self.ip += Computer.instructions[opcode].count
+            if opcode == OUTPUT:
+                break
 
-        return self.outputs
+        return self.output
 
 
 def test(phases, program):
 
     A = Computer(program, [phases[0], 0])
-    outputs = A.run()
-    B = Computer(program, [phases[1], outputs[0]])
-    outputs = B.run()
-    C = Computer(program, [phases[2], outputs[0]])
-    outputs = C.run()
-    D = Computer(program, [phases[3], outputs[0]])
-    outputs = D.run()
-    E = Computer(program, [phases[4], outputs[0]])
-    outputs = E.run()
-    # print(f"Phases, {phases}, produced {[outputs[0]]}")
+    output = A.run()
+    B = Computer(program, [phases[1], output])
+    output = B.run()
+    C = Computer(program, [phases[2], output])
+    output = C.run()
+    D = Computer(program, [phases[3], output])
+    output = D.run()
+    E = Computer(program, [phases[4], output])
+    output = E.run()
+    # print(f"Phases, {phases}, produced {[output]}")
 
-    return outputs[0]
+    return output
 
 
 def feedback(phases, program):
 
+    inputs = [[phases[i]] for i in range(5)]
+    amplifiers = [Computer(program, inputs[i]) for i in range(5)]
+    index = 0
+    output = 0
+    last = None
+    while output is not None:
+        last = output
+        output = amplifiers[index].run([output])
+        index = (index + 1) % 5
 
-
-    return outputs[0]
+    return last
 
 
 def main():
@@ -207,13 +222,13 @@ def main():
     # Part 2
 
     # program = [int(entry) for entry in "3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5".split(",")]
-    program = [int(entry) for entry in "3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,-5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10".split(",")]
+    # program = [int(entry) for entry in "3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,-5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10".split(",")]
 
     max = 0
     for permutation in permutations([5, 6, 7, 8, 9]):
         phases = list(permutation)
         signal = feedback(phases, program)
-        if signal > max
+        if signal > max:
             max = signal
             best = list(phases)
 
