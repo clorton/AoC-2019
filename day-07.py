@@ -166,17 +166,11 @@ class Computer(object):
 
 def test(phases, program):
 
-    A = Computer(program, [phases[0], 0])
-    output = A.run()
-    B = Computer(program, [phases[1], output])
-    output = B.run()
-    C = Computer(program, [phases[2], output])
-    output = C.run()
-    D = Computer(program, [phases[3], output])
-    output = D.run()
-    E = Computer(program, [phases[4], output])
-    output = E.run()
-    # print(f"Phases, {phases}, produced {[output]}")
+    inputs = [[phases[i]] for i in range(5)]
+    amplifiers = [Computer(program, inputs[i]) for i in range(5)]
+    output = 0
+    for index in range(5):
+        output = amplifiers[index].run([output])
 
     return output
 
