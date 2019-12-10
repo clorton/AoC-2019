@@ -2,7 +2,6 @@
 
 
 from collections import namedtuple
-from itertools import permutations
 
 ADD = 1
 MULTIPLY = 2
