@@ -13,7 +13,7 @@ RIGHT = 1
 
 def main():
 
-    with open('day11.txt', 'r') as file:
+    with open('day-11.txt', 'r') as file:
         inputs = file.read()
 
     program = [int(entry) for entry in inputs.split(',')]

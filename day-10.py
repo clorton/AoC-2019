@@ -20,7 +20,7 @@ RIGHT = "right"
 
 def main():
 
-    with open('day10.txt', 'r') as file:
+    with open('day-10.txt', 'r') as file:
         inputs = [line.strip() for line in file.readlines()]
 
     # inputs = [
