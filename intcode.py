@@ -23,9 +23,9 @@ Microcode = namedtuple('Microcode', ['function', 'count'])
 
 class Computer(object):
 
-    def __init__(self, memory, inputs):
+    def __init__(self, memory, inputs=None):
         self.memory = list(memory)
-        self.inputs = list(inputs)
+        self.inputs = list(inputs) if inputs is not None else []
         self.ip = 0
         self.index = 0
         self.output = None
@@ -78,7 +78,6 @@ class Computer(object):
         modes = self.memory[self.ip] - (self.memory[self.ip] % 10)
         first = self.load(Computer.mode(modes, 1), self.memory[self.ip + 1])
         second = self.load(Computer.mode(modes, 2), self.memory[self.ip + 2])
-        # assert Computer.mode(modes, 3) == POSITION, 'Cannot store with immediate mode.'
         self.store(first + second, Computer.mode(modes, 3), self.memory[self.ip+3])
 
         return False
@@ -88,7 +87,6 @@ class Computer(object):
         modes = self.memory[self.ip] - (self.memory[self.ip] % 10)
         first = self.load(Computer.mode(modes, 1), self.memory[self.ip + 1])
         second = self.load(Computer.mode(modes, 2), self.memory[self.ip + 2])
-        # assert Computer.mode(modes, 3) == POSITION, 'Cannot store with immediate mode.'
         self.store(first * second, Computer.mode(modes, 3), self.memory[self.ip + 3])
 
         return False
@@ -98,7 +96,6 @@ class Computer(object):
         modes = self.memory[self.ip] - (self.memory[self.ip] % 10)
         value = self.inputs[self.index]
         self.index += 1
-        # assert Computer.mode(modes, 1) == POSITION, 'Cannot store with immediate mode.'
         self.store(value, Computer.mode(modes, 1), self.memory[self.ip + 1])
 
         return False
@@ -108,7 +105,6 @@ class Computer(object):
         modes = self.memory[self.ip] - (self.memory[self.ip] % 10)
         value = self.load(Computer.mode(modes, 1), self.memory[self.ip + 1])
         self.output = value
-        # print(f"value")
 
         return False
 
@@ -139,7 +135,6 @@ class Computer(object):
         modes = self.memory[self.ip] - (self.memory[self.ip] % 10)
         first = self.load(Computer.mode(modes, 1), self.memory[self.ip + 1])
         second = self.load(Computer.mode(modes, 2), self.memory[self.ip + 2])
-        # assert Computer.mode(modes, 3) == POSITION, 'Cannot store with immediate mode.'
         self.store(1 if first < second else 0, Computer.mode(modes, 3), self.memory[self.ip + 3])
 
         return False
@@ -149,7 +144,6 @@ class Computer(object):
         modes = self.memory[self.ip] - (self.memory[self.ip] % 10)
         first = self.load(Computer.mode(modes, 1), self.memory[self.ip + 1])
         second = self.load(Computer.mode(modes, 2), self.memory[self.ip + 2])
-        # assert Computer.mode(modes, 3) == POSITION, 'Cannot store with immediate mode.'
         self.store(1 if first == second else 0, Computer.mode(modes, 3), self.memory[self.ip + 3])
 
         return False
@@ -177,7 +171,8 @@ class Computer(object):
     def run(self, inputs=None) -> int:
 
         if inputs is not None:
-            self.inputs.extend(inputs)
+            self.inputs = list(inputs)
+            self.index = 0
         self.output = None
         while self.memory[self.ip] != HALT:
             opcode = self.memory[self.ip] % 10
