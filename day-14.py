@@ -66,26 +66,26 @@ def main():
     #     "176 ORE => 6 VJHF"
     # ]   # 180697
 
-    # Test 5
-    inputs = [
-        "171 ORE => 8 CNZTR",
-        "7 ZLQW, 3 BMBT, 9 XCVML, 26 XMNCP, 1 WPTQ, 2 MZWV, 1 RJRHP => 4 PLWSL",
-        "114 ORE => 4 BHXH",
-        "14 VRPVC => 6 BMBT",
-        "6 BHXH, 18 KTJDG, 12 WPTQ, 7 PLWSL, 31 FHTLT, 37 ZDVW => 1 FUEL",
-        "6 WPTQ, 2 BMBT, 8 ZLQW, 18 KTJDG, 1 XMNCP, 6 MZWV, 1 RJRHP => 6 FHTLT",
-        "15 XDBXC, 2 LTCX, 1 VRPVC => 6 ZLQW",
-        "13 WPTQ, 10 LTCX, 3 RJRHP, 14 XMNCP, 2 MZWV, 1 ZLQW => 1 ZDVW",
-        "5 BMBT => 4 WPTQ",
-        "189 ORE => 9 KTJDG",
-        "1 MZWV, 17 XDBXC, 3 XCVML => 2 XMNCP",
-        "12 VRPVC, 27 CNZTR => 2 XDBXC",
-        "15 KTJDG, 12 BHXH => 5 XCVML",
-        "3 BHXH, 2 VRPVC => 7 MZWV",
-        "121 ORE => 7 VRPVC",
-        "7 XCVML => 6 RJRHP",
-        "5 BHXH, 4 VRPVC => 5 LTCX"
-    ]   # 2210736
+    # # Test 5
+    # inputs = [
+    #     "171 ORE => 8 CNZTR",
+    #     "7 ZLQW, 3 BMBT, 9 XCVML, 26 XMNCP, 1 WPTQ, 2 MZWV, 1 RJRHP => 4 PLWSL",
+    #     "114 ORE => 4 BHXH",
+    #     "14 VRPVC => 6 BMBT",
+    #     "6 BHXH, 18 KTJDG, 12 WPTQ, 7 PLWSL, 31 FHTLT, 37 ZDVW => 1 FUEL",
+    #     "6 WPTQ, 2 BMBT, 8 ZLQW, 18 KTJDG, 1 XMNCP, 6 MZWV, 1 RJRHP => 6 FHTLT",
+    #     "15 XDBXC, 2 LTCX, 1 VRPVC => 6 ZLQW",
+    #     "13 WPTQ, 10 LTCX, 3 RJRHP, 14 XMNCP, 2 MZWV, 1 ZLQW => 1 ZDVW",
+    #     "5 BMBT => 4 WPTQ",
+    #     "189 ORE => 9 KTJDG",
+    #     "1 MZWV, 17 XDBXC, 3 XCVML => 2 XMNCP",
+    #     "12 VRPVC, 27 CNZTR => 2 XDBXC",
+    #     "15 KTJDG, 12 BHXH => 5 XCVML",
+    #     "3 BHXH, 2 VRPVC => 7 MZWV",
+    #     "121 ORE => 7 VRPVC",
+    #     "7 XCVML => 6 RJRHP",
+    #     "5 BHXH, 4 VRPVC => 5 LTCX"
+    # ]   # 2210736
 
     reactions = []
     for line in inputs:
@@ -120,7 +120,8 @@ def main():
 
     # Part 2
 
-    ore = 1000000000000
+    ONETRILLION = 1000000000000
+    ore = ONETRILLION
     available = defaultdict(lambda: 0)
     fuel = 0
     while ore > 0:
@@ -138,6 +139,22 @@ def main():
                     if reactant.name != ORE:
                         goals.append(Product(reactant.qty*multiplier, reactant.name))
                     else:
+                        # if (reactant.qty*multiplier) > ore:
+                        #     seed = list(filter(lambda r: r.product.name == FUEL, reactions))[0]
+                        #     undo = [_.name for _ in seed.reactants]
+                        #     while len(undo) > 0:
+                        #         prod = undo.pop(0)
+                        #         rxn = list(filter(lambda r: r.product.name == prod, reactions))[0]
+                        #         x = available[prod] // rxn.product.qty
+                        #         if x > 0:
+                        #             available[prod] -= rxn.product.qty * x
+                        #             for react in rxn.reactants:
+                        #                 if react.name != ORE:
+                        #                     available[react.name] += react.qty * x
+                        #                     undo.append(react.name)
+                        #                 else:
+                        #                     ore += react.qty * x
+
                         ore -= reactant.qty*multiplier
                         if ore <= 0:
                             break
@@ -147,19 +164,20 @@ def main():
         if ore <= 0:
             break
         fuel += 1
-        store = 0
-        for key, value in available.items():
-            store += value
-        if store == 0:
-            cost = 1000000000000-ore
+        cost = ONETRILLION - ore
+        cycles = ore // cost
+        if cycles > 0:
             print(f"Produced {fuel} units of fuel with {cost} units of ore.")
-            cycles = ore // cost
             print(f"Skipping ahead {cycles} cycles.")
             fuel *= (cycles + 1)
             ore -= (cost * cycles)
             print(f"{fuel} fuel produced, {ore} ore remaining after skip.")
+            for key, value in available.items():
+                available[key] *= cycles
 
     print(f"Produced {fuel} units of fuel.")
+    # ONETRILLION // 443537 = 2254603 is too little
+    # 2271734 :( - too low
 
     return
 
