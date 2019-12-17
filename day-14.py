@@ -11,6 +11,29 @@ ORE = "ORE"
 FUEL = "FUEL"
 
 
+def ore_for_fuel(reactions, amount=1):
+    available = defaultdict(lambda: 0)
+    goals = [Product(amount, FUEL)]
+    ore = 0
+    while len(goals) > 0:
+        goal = goals.pop(0)
+        if available[goal.name] >= goal.qty:
+            available[goal.name] -= goal.qty
+        else:
+            needed = goal.qty - available[goal.name]
+            available[goal.name] = 0
+            reaction = list(filter(lambda r: r.product.name == goal.name, reactions))[0]
+            multiplier = int(ceil(float(needed)/reaction.product.qty))
+            for reactant in reaction.reactants:
+                if reactant.name != ORE:
+                    goals.append(Product(reactant.qty*multiplier, reactant.name))
+                else:
+                    ore += reactant.qty*multiplier
+            available[goal.name] += (reaction.product.qty * multiplier) - needed
+
+    return ore
+
+
 def main():
 
     with open("day-14.txt", "r") as file:
@@ -97,87 +120,34 @@ def main():
         product = Product(int(qty), name)
         reactions.append(Reaction(reactants, product))
 
-    goals = [Product(1, FUEL)]
-    ore = 0
-    available = defaultdict(lambda: 0)
-    while len(goals) > 0:
-        goal = goals.pop(0)
-        if available[goal.name] >= goal.qty:
-            available[goal.name] -= goal.qty
-        else:
-            needed = goal.qty - available[goal.name]
-            available[goal.name] = 0
-            reaction = list(filter(lambda r: r.product.name == goal.name, reactions))[0]
-            multiplier = int(ceil(float(needed)/reaction.product.qty))
-            for reactant in reaction.reactants:
-                if reactant.name != ORE:
-                    goals.append(Product(reactant.qty*multiplier, reactant.name))
-                else:
-                    ore += reactant.qty*multiplier
-            available[goal.name] += (reaction.product.qty * multiplier) - needed
-
-    print(f"Need {ore} units of ore.")
+    print(f"Need {ore_for_fuel(reactions, 1)} units of ore.")
 
     # Part 2
 
     ONETRILLION = 1000000000000
-    ore = ONETRILLION
-    available = defaultdict(lambda: 0)
-    fuel = 0
-    while ore > 0:
-        goals = [Product(1, FUEL)]
-        while len(goals) > 0:
-            goal = goals.pop(0)
-            if available[goal.name] >= goal.qty:
-                available[goal.name] -= goal.qty
-            else:
-                needed = goal.qty - available[goal.name]
-                available[goal.name] = 0
-                reaction = list(filter(lambda r: r.product.name == goal.name, reactions))[0]
-                multiplier = int(ceil(float(needed)/reaction.product.qty))
-                for reactant in reaction.reactants:
-                    if reactant.name != ORE:
-                        goals.append(Product(reactant.qty*multiplier, reactant.name))
-                    else:
-                        # if (reactant.qty*multiplier) > ore:
-                        #     seed = list(filter(lambda r: r.product.name == FUEL, reactions))[0]
-                        #     undo = [_.name for _ in seed.reactants]
-                        #     while len(undo) > 0:
-                        #         prod = undo.pop(0)
-                        #         rxn = list(filter(lambda r: r.product.name == prod, reactions))[0]
-                        #         x = available[prod] // rxn.product.qty
-                        #         if x > 0:
-                        #             available[prod] -= rxn.product.qty * x
-                        #             for react in rxn.reactants:
-                        #                 if react.name != ORE:
-                        #                     available[react.name] += react.qty * x
-                        #                     undo.append(react.name)
-                        #                 else:
-                        #                     ore += react.qty * x
 
-                        ore -= reactant.qty*multiplier
-                        if ore <= 0:
-                            break
-                available[goal.name] += (reaction.product.qty * multiplier) - needed
-            if ore <= 0:
-                break
-        if ore <= 0:
+    goal = 1
+    while ore_for_fuel(reactions, amount=goal) < ONETRILLION:
+        low = goal
+        goal *= 2
+
+    high = goal
+
+    while True:
+        print(f"{high} ... {low}")
+        fuel = ((high + low) // 2)
+        if fuel == low:
             break
-        fuel += 1
-        cost = ONETRILLION - ore
-        cycles = ore // cost
-        if cycles > 0:
-            print(f"Produced {fuel} units of fuel with {cost} units of ore.")
-            print(f"Skipping ahead {cycles} cycles.")
-            fuel *= (cycles + 1)
-            ore -= (cost * cycles)
-            print(f"{fuel} fuel produced, {ore} ore remaining after skip.")
-            for key, value in available.items():
-                available[key] *= cycles
+        ore = ore_for_fuel(reactions, amount=fuel)
+        if ore > ONETRILLION:
+            high = fuel
+        elif ore < ONETRILLION:
+            low = fuel
+        else:
+            break
 
-    print(f"Produced {fuel} units of fuel.")
-    # ONETRILLION // 443537 = 2254603 is too little
-    # 2271734 :( - too low
+    print(f"Produced {fuel} units of fuel with {ore_for_fuel(reactions, amount=fuel)} ore.")
+    print(f"({fuel+1} units of fuel requires {ore_for_fuel(reactions, amount=fuel+1)} ore)")
 
     return
 
